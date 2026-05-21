@@ -225,7 +225,16 @@ class ShortUrlTest extends TestCase
             'role' => 'Member',
             'company_id' => $company->id,
         ]);
-        $this->assertDatabaseMissing('invitations', ['email' => 'aman@plaxonic.com']);
+
+        // Invitation is kept as accepted history (not deleted).
+        $acceptedUser = \App\Models\User::where('email', 'aman@plaxonic.com')->firstOrFail();
+        $this->assertDatabaseHas('invitations', [
+            'email' => 'aman@plaxonic.com',
+            'accepted_user_id' => $acceptedUser->id,
+        ]);
+        $accepted = \App\Models\Invitation::where('email', 'aman@plaxonic.com')->firstOrFail();
+        $this->assertNotNull($accepted->accepted_at);
+
         $this->assertAuthenticated();
     }
 }

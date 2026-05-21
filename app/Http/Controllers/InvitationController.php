@@ -25,12 +25,13 @@ class InvitationController extends Controller
         $user = $request->user();
 
         // SuperAdmin sees all invitations; everyone else only sees their own company's.
-        $q = Invitation::with('company')->orderBy('id');
-        if ($user->role === 'SuperAdmin') {
-            $invitations = $q->get();
-        } else {
-            $invitations = $q->where('company_id', $user->company_id)->get();
+        $base = Invitation::with(['company', 'acceptedUser']);
+        if ($user->role !== 'SuperAdmin') {
+            $base->where('company_id', $user->company_id);
         }
+
+        $pending  = (clone $base)->whereNull('accepted_at')->orderBy('id')->get();
+        $accepted = (clone $base)->whereNotNull('accepted_at')->orderByDesc('accepted_at')->get();
 
         // Companies dropdown is only meaningful for SuperAdmin (who picks which
         // company the new Admin belongs to).
@@ -38,19 +39,21 @@ class InvitationController extends Controller
             ? Company::orderBy('id')->get()
             : collect();
 
-        // var_dump($invitations->toArray());
-        // var_dump($companies->toArray());
-        // die();
-
-        return view('invitations.index', compact('invitations', 'companies'));
+        return view('invitations.index', compact('pending', 'accepted', 'companies'));
     }
 
     public function store(Request $request)
     {
         $user = $request->user();
 
+        // For invitations we only block re-sending while one is still pending.
+        // Already-accepted invitations are kept as history but shouldn't block.
         $rules = [
-            'email' => 'required|email|unique:users,email|unique:invitations,email',
+            'email' => [
+                'required', 'email',
+                'unique:users,email',
+                \Illuminate\Validation\Rule::unique('invitations', 'email')->whereNull('accepted_at'),
+            ],
             'role'  => 'required|string|in:Admin,Member,Sales,Manager',
         ];
 
@@ -119,14 +122,21 @@ class InvitationController extends Controller
     {
         $invitation = Invitation::where('token', $token)->firstOrFail();
 
+        // If this invite was already accepted, the link is dead.
+        if ($invitation->isAccepted()) {
+            return redirect()
+                ->route('login')
+                ->withErrors(['email' => 'This invitation has already been accepted. Please log in.']);
+        }
+
         $request->validate([
             'name'     => 'required|string|max:255',
             'password' => 'required|string|min:6|confirmed',
         ]);
 
-        // 
         if (User::where('email', $invitation->email)->exists()) {
-            $invitation->delete();
+            // We don't delete the invitation here -- it gets marked accepted below
+            // only when a user is actually created. Just bounce them to login.
             return redirect()
                 ->route('login')
                 ->withErrors(['email' => 'An account with this email already exists. Please log in.']);
@@ -140,14 +150,14 @@ class InvitationController extends Controller
             'company_id' => $invitation->company_id,
         ]);
 
-        //  token 
-        $invitation->delete();
+        // Mark invite as accepted (kept for history; don't delete).
+        $invitation->update([
+            'accepted_at'      => now(),
+            'accepted_user_id' => $user->id,
+        ]);
 
         Auth::login($user);
         $request->session()->regenerate();
-
-        // var_dump($user->toArray());
-        // die();
 
         return redirect('/dashboard')->with('success', 'Welcome aboard, ' . $user->name . '!');
     }

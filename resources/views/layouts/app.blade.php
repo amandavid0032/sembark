@@ -214,6 +214,7 @@
         @endif
         @if(in_array($role, ['SuperAdmin', 'Admin']))
             <a href="{{ route('invitations.index') }}" class="{{ str_starts_with($current, 'invitations') ? 'active' : '' }}">Invitations</a>
+            <a href="{{ route('users.index') }}" class="{{ str_starts_with($current, 'users') ? 'active' : '' }}">Users</a>
         @endif
         <a href="{{ route('short-urls.index') }}" class="{{ str_starts_with($current, 'short-urls') ? 'active' : '' }}">Short URLs</a>
     </div>

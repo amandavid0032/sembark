@@ -4,6 +4,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\InvitationController;
 use App\Http\Controllers\ShortUrlController;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 // Root -> dashboard (the dashboard route itself is auth-protected, so this
@@ -37,6 +38,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/short-urls',            [ShortUrlController::class, 'index'])->name('short-urls.index');
     Route::post('/short-urls',           [ShortUrlController::class, 'store'])->name('short-urls.store');
     Route::delete('/short-urls/{id}',    [ShortUrlController::class, 'destroy'])->name('short-urls.destroy');
+
+    // Users (SuperAdmin sees all, Admin scoped to their company -- enforced inside).
+    Route::get('/users',         [UserController::class, 'index'])->name('users.index');
+    Route::get('/users/{user}',  [UserController::class, 'show'])->name('users.show');
 });
 
 // Public short-URL resolver. Per spec: redirects to the original URL.

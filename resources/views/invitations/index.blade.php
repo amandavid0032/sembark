@@ -60,30 +60,80 @@
 
 <div class="card">
     <h3>Pending invitations</h3>
+    <p class="card-subtitle">Mail is set to <span class="code">log</span> in dev, so the invitee won't get a real email. Copy the link below and send it to them manually.</p>
     <table>
         <thead>
             <tr>
                 <th style="width:60px;">ID</th>
                 <th>Email</th>
-                <th style="width:120px;">Role</th>
+                <th style="width:110px;">Role</th>
                 <th>Company</th>
-                <th style="width:160px;">Sent at</th>
-                <th style="width:120px;">Status</th>
+                <th style="width:150px;">Sent at</th>
+                <th>Accept link</th>
             </tr>
         </thead>
         <tbody>
-            @forelse($invitations as $inv)
+            @forelse($pending as $inv)
+                @php($acceptUrl = route('invitations.accept.show', $inv->token))
                 <tr>
                     <td>{{ $inv->id }}</td>
                     <td>{{ $inv->email }}</td>
                     <td><span class="badge badge-role">{{ $inv->role }}</span></td>
                     <td>{{ $inv->company ? $inv->company->name : '—' }}</td>
                     <td class="muted">{{ $inv->created_at->format('Y-m-d H:i') }}</td>
-                    <td><span class="badge badge-status">Pending</span></td>
+                    <td>
+                        <div class="row-inline-form">
+                            <input type="text" class="form-control" value="{{ $acceptUrl }}" readonly onclick="this.select()" style="font-size:12px;">
+                            <button type="button" class="btn btn-sm btn-secondary"
+                                    onclick="navigator.clipboard.writeText('{{ $acceptUrl }}').then(()=>{this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500);})">
+                                Copy
+                            </button>
+                            <a href="{{ $acceptUrl }}" target="_blank" class="btn btn-sm btn-secondary">Open</a>
+                        </div>
+                    </td>
                 </tr>
             @empty
                 <tr>
                     <td colspan="6" class="empty">No pending invitations.</td>
+                </tr>
+            @endforelse
+        </tbody>
+    </table>
+</div>
+
+<div class="card">
+    <h3>Accepted invitations</h3>
+    <p class="card-subtitle">History of invites that have been claimed.</p>
+    <table>
+        <thead>
+            <tr>
+                <th style="width:60px;">ID</th>
+                <th>Email</th>
+                <th style="width:110px;">Role</th>
+                <th>Company</th>
+                <th>Accepted by</th>
+                <th style="width:160px;">Accepted at</th>
+            </tr>
+        </thead>
+        <tbody>
+            @forelse($accepted as $inv)
+                <tr>
+                    <td>{{ $inv->id }}</td>
+                    <td>{{ $inv->email }}</td>
+                    <td><span class="badge badge-role">{{ $inv->role }}</span></td>
+                    <td>{{ $inv->company ? $inv->company->name : '—' }}</td>
+                    <td>
+                        @if($inv->acceptedUser)
+                            <a href="{{ route('users.show', $inv->acceptedUser->id) }}">{{ $inv->acceptedUser->name }}</a>
+                        @else
+                            <span class="muted">—</span>
+                        @endif
+                    </td>
+                    <td class="muted">{{ $inv->accepted_at?->format('Y-m-d H:i') }}</td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="6" class="empty">No accepted invitations yet.</td>
                 </tr>
             @endforelse
         </tbody>

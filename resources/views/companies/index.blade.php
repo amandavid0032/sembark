@@ -45,7 +45,13 @@
                             <button type="submit" class="btn btn-sm btn-secondary">Save</button>
                         </form>
                     </td>
-                    <td>{{ $company->users_count }}</td>
+                    <td>
+                        @if($company->users_count > 0)
+                            <a href="{{ route('users.index', ['company_id' => $company->id]) }}">{{ $company->users_count }}</a>
+                        @else
+                            {{ $company->users_count }}
+                        @endif
+                    </td>
                     <td>{{ $company->short_urls_count }}</td>
                     <td>{{ $company->invitations_count }}</td>
                     <td>
