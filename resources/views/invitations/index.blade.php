@@ -101,42 +101,4 @@
     </table>
 </div>
 
-<div class="card">
-    <h3>Accepted invitations</h3>
-    <p class="card-subtitle">History of invites that have been claimed.</p>
-    <table>
-        <thead>
-            <tr>
-                <th style="width:60px;">ID</th>
-                <th>Email</th>
-                <th style="width:110px;">Role</th>
-                <th>Company</th>
-                <th>Accepted by</th>
-                <th style="width:160px;">Accepted at</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse($accepted as $inv)
-                <tr>
-                    <td>{{ $inv->id }}</td>
-                    <td>{{ $inv->email }}</td>
-                    <td><span class="badge badge-role">{{ $inv->role }}</span></td>
-                    <td>{{ $inv->company ? $inv->company->name : '—' }}</td>
-                    <td>
-                        @if($inv->acceptedUser)
-                            <a href="{{ route('users.show', $inv->acceptedUser->id) }}">{{ $inv->acceptedUser->name }}</a>
-                        @else
-                            <span class="muted">—</span>
-                        @endif
-                    </td>
-                    <td class="muted">{{ $inv->accepted_at?->format('Y-m-d H:i') }}</td>
-                </tr>
-            @empty
-                <tr>
-                    <td colspan="6" class="empty">No accepted invitations yet.</td>
-                </tr>
-            @endforelse
-        </tbody>
-    </table>
-</div>
 @endsection

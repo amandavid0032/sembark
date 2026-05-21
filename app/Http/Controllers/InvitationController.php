@@ -24,22 +24,17 @@ class InvitationController extends Controller
     {
         $user = $request->user();
 
-        // SuperAdmin sees all invitations; everyone else only sees their own company's.
-        $base = Invitation::with(['company', 'acceptedUser']);
+        $q = Invitation::with('company')->whereNull('accepted_at')->orderBy('id');
         if ($user->role !== 'SuperAdmin') {
-            $base->where('company_id', $user->company_id);
+            $q->where('company_id', $user->company_id);
         }
+        $pending = $q->get();
 
-        $pending  = (clone $base)->whereNull('accepted_at')->orderBy('id')->get();
-        $accepted = (clone $base)->whereNotNull('accepted_at')->orderByDesc('accepted_at')->get();
-
-        // Companies dropdown is only meaningful for SuperAdmin (who picks which
-        // company the new Admin belongs to).
         $companies = $user->role === 'SuperAdmin'
             ? Company::orderBy('id')->get()
             : collect();
 
-        return view('invitations.index', compact('pending', 'accepted', 'companies'));
+        return view('invitations.index', compact('pending', 'companies'));
     }
 
     public function store(Request $request)
