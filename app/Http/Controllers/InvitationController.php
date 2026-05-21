@@ -46,8 +46,7 @@ class InvitationController extends Controller
     {
         $user = $request->user();
 
-        // For invitations we only block re-sending while one is still pending.
-        // Already-accepted invitations are kept as history but shouldn't block.
+       
         $rules = [
             'email' => [
                 'required', 'email',
@@ -82,10 +81,8 @@ class InvitationController extends Controller
             'invited_by' => $user->id,
         ]);
 
-        // Send the email. We eager-load company so the email view can show it.
         $invitation->load('company');
 
-        // TODO: queue this in production -- right now it blocks the request.
         Mail::to($invitation->email)->send(new InvitationMail($invitation));
 
         Log::info('invitation sent', [
@@ -104,8 +101,7 @@ class InvitationController extends Controller
     {
         $invitation = Invitation::with('company')->where('token', $token)->firstOrFail();
 
-        // If someone (e.g. the inviter testing the link) is already logged in,
-        // kick them out so they can sign up as the new user.
+       
         if (Auth::check()) {
             Auth::logout();
             $request->session()->invalidate();
@@ -135,8 +131,7 @@ class InvitationController extends Controller
         ]);
 
         if (User::where('email', $invitation->email)->exists()) {
-            // We don't delete the invitation here -- it gets marked accepted below
-            // only when a user is actually created. Just bounce them to login.
+          
             return redirect()
                 ->route('login')
                 ->withErrors(['email' => 'An account with this email already exists. Please log in.']);
@@ -150,7 +145,7 @@ class InvitationController extends Controller
             'company_id' => $invitation->company_id,
         ]);
 
-        // Mark invite as accepted (kept for history; don't delete).
+     
         $invitation->update([
             'accepted_at'      => now(),
             'accepted_user_id' => $user->id,
