@@ -28,8 +28,8 @@ class CompanyController extends Controller
             ->orderBy('id')
             ->get();
 
-        var_dump($companies->toArray());
-        die();
+        // var_dump($companies->toArray());
+        // die();
 
         return view('companies.index', compact('companies'));
     }
@@ -46,9 +46,9 @@ class CompanyController extends Controller
 
         Log::info('company created', ['id' => $company->id, 'name' => $company->name]);
 
-        var_dump($data);
-        var_dump($company->toArray());
-        die();
+        // var_dump($data);
+        // var_dump($company->toArray());
+        // die();
 
         return back()->with('success', 'Company created.');
     }
@@ -65,9 +65,9 @@ class CompanyController extends Controller
 
         $company->update(['name' => $data['name']]);
 
-        var_dump($data);
-        var_dump($company->toArray());
-        die();
+        // var_dump($data);
+        // var_dump($company->toArray());
+        // die();
 
         return back()->with('success', 'Company updated.');
     }
@@ -78,8 +78,8 @@ class CompanyController extends Controller
 
         // FK on users/short_urls/invitations cascades, so this also wipes the
         // company's data. The confirm() prompt in the view warns the user.
-        var_dump($company->toArray());
-        die();
+        // var_dump($company->toArray());
+        // die();
 
         $company->delete();
 
