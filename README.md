@@ -22,6 +22,7 @@ Stack: Laravel 13, PHP 8.3, MySQL, session auth (no Sanctum tokens, just cookies
 - Composer
 - Node 18+ and npm
 - MySQL 5.7+ / 8.x running locally
+- A **Gmail account with an app password** (for sending invitation emails — see [Email setup](#email-setup-gmail-smtp) below). Without this, invites won't actually send.
 
 ## Database setup
 
@@ -90,31 +91,33 @@ The SuperAdmin doesn't belong to any company — they're global. Use the SuperAd
 
 ## Email setup (Gmail SMTP)
 
-The invitation flow sends a real email with the accept link. The easiest way to make that work in local dev is Gmail SMTP with an **app password** (not your normal Gmail password — Google blocks those).
+> ⚠️ **You must use your OWN Gmail address and your OWN Gmail app password.**
+> The values in `.env.example` are placeholders — they will not work. Without setting these up, invitation emails won't actually send. Don't use your regular Gmail password — Google blocks SMTP login with regular passwords, you need an *app password*.
 
 **1. Generate a Gmail app password:**
-- Go to https://myaccount.google.com/apppasswords (you must have 2-step verification enabled first)
-- Pick "Mail" + your device name → Google gives you a 16-character password like `abcd efgh ijkl mnop`
-- Copy it (you only see it once)
+- Make sure 2-step verification is enabled on your Google account first (https://myaccount.google.com/security)
+- Then go to https://myaccount.google.com/apppasswords
+- Pick "Mail" + give it any device name → Google gives you a 16-character password like `abcd efgh ijkl mnop`
+- Copy it (you only see it once — Google never shows it again)
 
-**2. Put these in your `.env`:**
+**2. Put YOUR OWN email + app password in your `.env`:**
 
 ```env
 MAIL_MAILER=smtp
 MAIL_HOST=smtp.gmail.com
 MAIL_PORT=587
-MAIL_USERNAME=your-email@gmail.com
-MAIL_PASSWORD="paste-the-16-char-app-password-here"
+MAIL_USERNAME=your-email@gmail.com           # <-- your real Gmail address
+MAIL_PASSWORD="paste-your-16-char-app-pwd"   # <-- the app password from step 1
 MAIL_ENCRYPTION=tls
-MAIL_FROM_ADDRESS="your-email@gmail.com"
+MAIL_FROM_ADDRESS="your-email@gmail.com"     # <-- same as MAIL_USERNAME
 MAIL_FROM_NAME="URL Shortener SaaS"
 ```
 
-**3. Test it** by sending an invitation from `/invitations`. The invitee should get a real email with the accept link.
+**3. Test it** by sending an invitation from `/invitations`. The invitee should get a real email with the accept link in their inbox. If nothing arrives, check `storage/logs/laravel.log` — Laravel will log the SMTP error there.
 
 **Heads up:**
 - Never commit a real app password to git. `.env` is gitignored — keep it that way.
-- If you don't want to set up SMTP, set `MAIL_MAILER=log` instead. Emails get written to `storage/logs/laravel.log` — grep for the accept link and paste it manually.
+- If you don't want to set up SMTP at all, set `MAIL_MAILER=log` instead. Emails get written to `storage/logs/laravel.log` — grep for the accept link and paste it manually.
 
 ## Migrations
 
