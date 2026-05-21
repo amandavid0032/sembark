@@ -42,6 +42,7 @@ Route::middleware('auth')->group(function () {
     // Users (SuperAdmin sees all, Admin scoped to their company -- enforced inside).
     Route::get('/users',         [UserController::class, 'index'])->name('users.index');
     Route::get('/users/{user}',  [UserController::class, 'show'])->name('users.show');
+    Route::post('/users/{user}/reset-password', [UserController::class, 'resetPassword'])->name('users.reset-password');
 });
 
 // Public short-URL resolver. Per spec: redirects to the original URL.

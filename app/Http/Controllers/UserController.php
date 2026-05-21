@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Company;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 
 // Users listing + per-user detail.
 // SuperAdmin sees everyone; Admin is scoped to their own company.
@@ -23,7 +25,8 @@ class UserController extends Controller
 
         $me = $request->user();
 
-        $q = User::query()->with('company');
+        // SuperAdmins manage people, they don't appear as one of them.
+        $q = User::query()->with('company')->where('role', '!=', 'SuperAdmin');
 
         // SuperAdmin can pick any company from the filter; Admin is locked to theirs.
         if ($me->role === 'SuperAdmin') {
@@ -34,8 +37,8 @@ class UserController extends Controller
             $q->where('company_id', $me->company_id);
         }
 
-        // Role filter (any of the 5).
-        if ($request->filled('role') && in_array($request->role, ['SuperAdmin', 'Admin', 'Member', 'Sales', 'Manager'])) {
+        // Role filter (SuperAdmin is excluded above, so don't allow it here).
+        if ($request->filled('role') && in_array($request->role, ['Admin', 'Member', 'Sales', 'Manager'])) {
             $q->where('role', $request->role);
         }
 
@@ -90,5 +93,24 @@ class UserController extends Controller
         $user->load(['company', 'shortUrls']);
 
         return view('users.show', compact('user'));
+    }
+
+    // SuperAdmin can reset any user's password. Nobody else.
+    public function resetPassword(Request $request, User $user)
+    {
+        abort_unless($request->user()?->role === 'SuperAdmin', 403, 'Only SuperAdmin can reset passwords.');
+
+        $data = $request->validate([
+            'password' => 'required|string|min:6|confirmed',
+        ]);
+
+        $user->update(['password' => Hash::make($data['password'])]);
+
+        Log::info('password reset by superadmin', [
+            'target_user' => $user->id,
+            'by'          => $request->user()->id,
+        ]);
+
+        return back()->with('success', "Password reset for {$user->email}.");
     }
 }

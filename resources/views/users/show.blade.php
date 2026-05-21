@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
 @section('content')
+@php($me = Auth::user())
+
 <div class="page-header">
     <h1>{{ $user->name }}</h1>
     <p>
@@ -22,6 +24,27 @@
         </tbody>
     </table>
 </div>
+
+@if($me->role === 'SuperAdmin' && $user->id !== $me->id)
+<div class="card">
+    <h3>Reset password</h3>
+    <p class="card-subtitle">As SuperAdmin you can force-set this user's password. They'll need to log in again with the new one.</p>
+    <form method="POST" action="{{ route('users.reset-password', $user->id) }}" onsubmit="return confirm('Reset password for {{ $user->email }}?');">
+        @csrf
+        <div class="form-row">
+            <div class="form-group inline" style="max-width: 240px;">
+                <label>New password</label>
+                <input type="password" name="password" class="form-control" minlength="6" required>
+            </div>
+            <div class="form-group inline" style="max-width: 240px;">
+                <label>Confirm</label>
+                <input type="password" name="password_confirmation" class="form-control" minlength="6" required>
+            </div>
+            <button type="submit" class="btn btn-danger">Reset password</button>
+        </div>
+    </form>
+</div>
+@endif
 
 <div class="card">
     <h3>Short URLs created by this user ({{ $user->shortUrls->count() }})</h3>

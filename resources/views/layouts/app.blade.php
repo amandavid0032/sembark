@@ -182,6 +182,27 @@
         .row-inline-form { display: flex; gap: 8px; align-items: center; }
         .row-inline-form .form-control { padding: 6px 10px; }
 
+        .chip-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+        .chip-row .chip-label {
+            font-size: 12px; font-weight: 600; color: var(--muted);
+            text-transform: uppercase; letter-spacing: 0.3px;
+            margin-right: 6px; min-width: 70px;
+        }
+        .chip {
+            display: inline-flex; align-items: center;
+            padding: 5px 12px; border-radius: 999px;
+            background: #fff; color: var(--text);
+            border: 1px solid var(--border); font-size: 13px; font-weight: 500;
+            text-decoration: none; cursor: pointer;
+            transition: background .15s, color .15s, border-color .15s;
+        }
+        .chip:hover { background: #f3f4f6; color: var(--text); text-decoration: none; border-color: #d1d5db; }
+        .chip.active {
+            background: var(--primary); color: #fff; border-color: var(--primary);
+        }
+        .chip.active:hover { background: var(--primary-hover); color: #fff; }
+        .filter-stack > * + * { margin-top: 12px; }
+
         .logout-form { margin: 0; display: inline; }
     </style>
 </head>

@@ -1,7 +1,20 @@
 @extends('layouts.app')
 
 @section('content')
-@php($role = Auth::user()->role)
+@php
+    $role = Auth::user()->role;
+
+    // Build a chip URL that preserves all current filters except the one being toggled.
+    $chipUrl = function ($key, $value) use ($filters) {
+        $params = array_filter($filters, fn($v) => $v !== null && $v !== '');
+        if ($value === null || $value === '') {
+            unset($params[$key]);
+        } else {
+            $params[$key] = $value;
+        }
+        return route('users.index', $params);
+    };
+@endphp
 
 <div class="page-header">
     <h1>Users</h1>
@@ -16,49 +29,49 @@
 
 <div class="card">
     <h3>Filters</h3>
-    <form method="GET" action="{{ route('users.index') }}">
-        <div class="form-row">
-            <div class="form-group inline">
-                <label>Search</label>
-                <input type="text" name="search" class="form-control" value="{{ $filters['search'] }}" placeholder="name or email">
-            </div>
 
-            @if($role === 'SuperAdmin')
-            <div class="form-group inline" style="max-width: 220px;">
-                <label>Company</label>
-                <select name="company_id" class="form-control">
-                    <option value="">— any company —</option>
-                    @foreach($companies as $c)
-                        <option value="{{ $c->id }}" {{ (string)$filters['company_id'] === (string)$c->id ? 'selected' : '' }}>{{ $c->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            @endif
-
-            <div class="form-group inline" style="max-width: 180px;">
-                <label>Role</label>
-                <select name="role" class="form-control">
-                    <option value="">— any role —</option>
-                    @foreach(['SuperAdmin', 'Admin', 'Member', 'Sales', 'Manager'] as $r)
-                        <option value="{{ $r }}" {{ $filters['role'] === $r ? 'selected' : '' }}>{{ $r }}</option>
-                    @endforeach
-                </select>
-            </div>
-
-            <div class="form-group inline" style="max-width: 200px;">
-                <label>Sort</label>
-                <select name="sort" class="form-control">
-                    <option value="created_desc" {{ $filters['sort'] === 'created_desc' ? 'selected' : '' }}>Newest first</option>
-                    <option value="created_asc"  {{ $filters['sort'] === 'created_asc'  ? 'selected' : '' }}>Oldest first</option>
-                    <option value="name_asc"     {{ $filters['sort'] === 'name_asc'     ? 'selected' : '' }}>Name (A→Z)</option>
-                    <option value="name_desc"    {{ $filters['sort'] === 'name_desc'    ? 'selected' : '' }}>Name (Z→A)</option>
-                </select>
-            </div>
-
-            <button type="submit" class="btn">Apply</button>
-            <a href="{{ route('users.index') }}" class="btn btn-secondary">Reset</a>
+    <div class="filter-stack">
+        <div class="chip-row">
+            <span class="chip-label">Role</span>
+            <a href="{{ $chipUrl('role', null) }}" class="chip {{ empty($filters['role']) ? 'active' : '' }}">All</a>
+            @foreach(['Admin', 'Member', 'Sales', 'Manager'] as $r)
+                <a href="{{ $chipUrl('role', $r) }}" class="chip {{ $filters['role'] === $r ? 'active' : '' }}">{{ $r }}</a>
+            @endforeach
         </div>
-    </form>
+
+        @if($role === 'SuperAdmin' && $companies->isNotEmpty())
+        <div class="chip-row">
+            <span class="chip-label">Company</span>
+            <a href="{{ $chipUrl('company_id', null) }}" class="chip {{ empty($filters['company_id']) ? 'active' : '' }}">All</a>
+            @foreach($companies as $c)
+                <a href="{{ $chipUrl('company_id', $c->id) }}" class="chip {{ (string)$filters['company_id'] === (string)$c->id ? 'active' : '' }}">{{ $c->name }}</a>
+            @endforeach
+        </div>
+        @endif
+
+        <div class="chip-row">
+            <span class="chip-label">Sort</span>
+            @php($sorts = ['created_desc' => 'Newest', 'created_asc' => 'Oldest', 'name_asc' => 'A → Z', 'name_desc' => 'Z → A'])
+            @foreach($sorts as $key => $label)
+                <a href="{{ $chipUrl('sort', $key) }}" class="chip {{ $filters['sort'] === $key ? 'active' : '' }}">{{ $label }}</a>
+            @endforeach
+        </div>
+
+        <form method="GET" action="{{ route('users.index') }}" class="row-inline-form" style="margin-top: 4px;">
+            {{-- Preserve other filters across search submits --}}
+            @foreach(['company_id', 'role', 'sort'] as $k)
+                @if(!empty($filters[$k]))
+                    <input type="hidden" name="{{ $k }}" value="{{ $filters[$k] }}">
+                @endif
+            @endforeach
+            <input type="text" name="search" class="form-control" value="{{ $filters['search'] }}" placeholder="Search name or email..." style="max-width: 360px;">
+            <button type="submit" class="btn btn-sm">Search</button>
+            @if(!empty($filters['search']))
+                <a href="{{ $chipUrl('search', null) }}" class="btn btn-sm btn-secondary">Clear</a>
+            @endif
+            <a href="{{ route('users.index') }}" class="btn btn-sm btn-secondary" style="margin-left: auto;">Reset all</a>
+        </form>
+    </div>
 </div>
 
 <div class="card">
