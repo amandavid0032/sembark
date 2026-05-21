@@ -13,6 +13,9 @@ class AuthController extends Controller
 {
     public function showLogin()
     {
+        // var_dump('showLogin called');
+        // die();
+
         return view('auth.login');
     }
 
@@ -22,9 +25,10 @@ class AuthController extends Controller
             'email' => 'required|email',
             'password' => 'required',
         ]);
-    //    var_dump($credentials);
-    //    exit;
-     
+
+        // var_dump($credentials);
+        // die();
+
         if (Auth::attempt($credentials)) {
             //  session  regenerate after successful login.
             $request->session()->regenerate();
@@ -45,6 +49,9 @@ class AuthController extends Controller
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
+
+        // var_dump('logout done');
+        // die();
 
         return redirect('/');
     }

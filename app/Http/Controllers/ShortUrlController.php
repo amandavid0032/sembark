@@ -29,6 +29,9 @@ class ShortUrlController extends Controller
             $urls = $q->where('user_id', $user->id)->get();
         }
 
+        // var_dump($urls->toArray());
+        // die();
+
         return view('short-urls.index', compact('urls'));
     }
 
@@ -64,6 +67,9 @@ class ShortUrlController extends Controller
             'by'   => $short->user_id,
         ]);
 
+        // var_dump($short->toArray());
+        // die();
+
         return back()->with('success', 'Short URL created successfully!');
     }
 
@@ -74,6 +80,9 @@ class ShortUrlController extends Controller
         // ShortUrlPolicy@delete handles "own only" vs "company-wide" vs SuperAdmin.
         Gate::authorize('delete', $shortUrl);
 
+        // var_dump($shortUrl->toArray());
+        // die();
+
         $shortUrl->delete();
 
         return back()->with('success', 'Short URL deleted successfully!');
@@ -83,6 +92,10 @@ class ShortUrlController extends Controller
     public function resolve(Request $request, $code)
     {
         $shortUrl = ShortUrl::where('short_code', $code)->firstOrFail();
+
+        // var_dump($shortUrl->toArray());
+        // die();
+
         return redirect($shortUrl->original_url);
     }
 }

@@ -38,6 +38,10 @@ class InvitationController extends Controller
             ? Company::orderBy('id')->get()
             : collect();
 
+        // var_dump($invitations->toArray());
+        // var_dump($companies->toArray());
+        // die();
+
         return view('invitations.index', compact('invitations', 'companies'));
     }
 
@@ -50,15 +54,13 @@ class InvitationController extends Controller
             'role'  => 'required|string|in:Admin,Member,Sales,Manager',
         ];
 
-        // SuperAdmin must pick a company from the dropdown; Admin's company is implicit.
         if ($user->role === 'SuperAdmin') {
             $rules['company_id'] = 'required|exists:companies,id';
         }
 
         $request->validate($rules);
 
-        // Policy check: SuperAdmin can only invite Admin, Admin can only invite
-        // Member/Sales/Manager. See InvitationPolicy@create.
+        // Member/Sales/Manager.
         if ($user->cannot('create', [Invitation::class, $request->role])) {
             return back()
                 ->withErrors(['role' => 'You are not authorized to invite a user with this role.'])
@@ -89,6 +91,9 @@ class InvitationController extends Controller
             'by'    => $user->id,
         ]);
 
+        // var_dump($invitation->toArray());
+        // die();
+
         return back()->with('success', 'Invitation email sent to ' . $invitation->email . '.');
     }
 
@@ -104,6 +109,9 @@ class InvitationController extends Controller
             $request->session()->regenerateToken();
         }
 
+        // var_dump($invitation->toArray());
+        // die();
+
         return view('invitations.accept', compact('invitation'));
     }
 
@@ -116,8 +124,7 @@ class InvitationController extends Controller
             'password' => 'required|string|min:6|confirmed',
         ]);
 
-        // Edge case: someone already signed up with this email between the time
-        // the invite was sent and now. Burn the invitation and send them to login.
+        // 
         if (User::where('email', $invitation->email)->exists()) {
             $invitation->delete();
             return redirect()
@@ -133,13 +140,14 @@ class InvitationController extends Controller
             'company_id' => $invitation->company_id,
         ]);
 
-        // One-shot token -- delete the invitation so the same link can't be reused.
+        //  token 
         $invitation->delete();
 
         Auth::login($user);
         $request->session()->regenerate();
 
-        // dd($user); // <-- handy for debugging when accept was failing silently.
+        // var_dump($user->toArray());
+        // die();
 
         return redirect('/dashboard')->with('success', 'Welcome aboard, ' . $user->name . '!');
     }
