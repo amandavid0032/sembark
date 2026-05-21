@@ -1,58 +1,131 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Backend
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Small Laravel app I built for the assignment. It's a multi-tenant thing where companies have users with roles, and users can invite each other in and make short URLs.
 
-## About Laravel
+Stack: Laravel 13, PHP 8.3, SQLite (default), session auth (no Sanctum tokens, just cookies). Frontend is plain Blade — no React/Vue, the spec said barebones HTML was fine.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## What it does
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- **Companies** — SuperAdmin can create / rename / delete them. Deleting a company wipes its users, invitations and short URLs (FK cascade).
+- **Users + roles** — five roles: `SuperAdmin`, `Admin`, `Member`, `Sales`, `Manager`. SuperAdmin is global (no company); everyone else belongs to one company.
+- **Invitations** — Admin/SuperAdmin email a signup link with a token. The invitee clicks it, picks a password, and gets logged in. Invitation row is deleted after they accept.
+- **Short URLs** — anyone in a company (except SuperAdmin) can shorten a URL. Visibility:
+  - SuperAdmin → sees all
+  - Admin → sees the company's
+  - Member/Sales/Manager → only their own
+- Public resolver at `/s/{code}` — no auth, just redirects.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Setup
 
-## Learning Laravel
-
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+You need PHP 8.3+, Composer, Node 18+ and npm. SQLite is built in so no DB server to install.
 
 ```bash
-composer require laravel/boost --dev
+# 1. install php + node deps
+composer install
+npm install
 
-php artisan boost:install
+# 2. copy env and gen app key
+cp .env.example .env
+php artisan key:generate
+
+# 3. make the sqlite file (if it doesn't exist)
+touch database/database.sqlite
+
+# 4. run migrations + seed the SuperAdmin and demo companies
+php artisan migrate --seed
+
+# 5. build frontend assets (or use `npm run dev` for hot reload)
+npm run build
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+There's also a composer shortcut that does most of this:
 
-## Contributing
+```bash
+composer run setup
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+## Running it
 
-## Code of Conduct
+```bash
+php artisan serve
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Then open http://localhost:8000.
 
-## Security Vulnerabilities
+For full dev mode (server + queue + log tail + vite all at once):
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```bash
+composer run dev
+```
 
-## License
+## Default login
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+The seeder creates one SuperAdmin and 3 demo companies:
+
+- email: `superadmin@example.com`
+- password: `password`
+
+Companies seeded: Acme Corp, Tech Solutions, Global Industries.
+
+The SuperAdmin doesn't belong to any company — they're global. Use the SuperAdmin to invite Admins into the demo companies, then those Admins can invite Members/Sales/Managers.
+
+## Migrations
+
+Standard Laravel stuff:
+
+```bash
+php artisan migrate            # apply pending
+php artisan migrate:fresh      # drop everything and re-run
+php artisan migrate:fresh --seed   # drop + re-run + seed (most useful for dev)
+php artisan migrate:rollback   # roll back the last batch
+```
+
+Tables created (in order):
+
+1. `companies` — id, name, timestamps
+2. `users` — has `role` and nullable `company_id` FK (null for SuperAdmin)
+3. `invitations` — company_id, email, role, token, invited_by
+4. `short_urls` — original_url, short_code (unique 8 chars), company_id, user_id
+
+All FKs cascade on delete, so killing a company tears down everything below it.
+
+## Email
+
+Mailer is set to `log` in `.env.example`, so invitation emails get written to `storage/logs/laravel.log` instead of actually being sent. Grep the log for the accept link, or swap `MAIL_MAILER` to `smtp` and fill in real SMTP creds if you want real emails.
+
+## Project layout
+
+```
+app/
+  Http/Controllers/
+    AuthController.php         # login/logout, session-based
+    CompanyController.php      # SuperAdmin-only CRUD
+    InvitationController.php   # send + accept invites
+    ShortUrlController.php     # CRUD + /s/{code} resolver
+  Models/                       # Company, User, Invitation, ShortUrl
+  Policies/                     # InvitationPolicy, ShortUrlPolicy
+  Mail/InvitationMail.php       # the invite email itself
+
+database/
+  migrations/                   # 4 migrations (see above)
+  seeders/DatabaseSeeder.php    # SuperAdmin + 3 companies, uses raw SQL per spec
+
+resources/views/                # Blade templates (auth, dashboard, companies, etc.)
+routes/web.php                  # all routes
+```
+
+Authorization for invitations and short-urls lives in Policies. Company auth is just a simple guard method inside `CompanyController` since only SuperAdmin touches it — a full Policy felt like overkill there.
+
+## Tests
+
+```bash
+php artisan test
+# or
+composer run test
+```
+
+There's a feature test for the short URL flow in `tests/Feature/ShortUrlTest.php`.
+
+## Debug helpers in controllers
+
+Each controller method has a commented `// var_dump(...); // die();` block right before its return. Uncomment when you need to inspect what's flowing through that method, then re-comment when done. Don't push them uncommented or the page will white-screen.
